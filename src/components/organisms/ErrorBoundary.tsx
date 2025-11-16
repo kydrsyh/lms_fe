@@ -111,15 +111,13 @@ class ErrorBoundary extends Component<Props, State> {
                 <Button
                   variant="outline"
                   onClick={this.handleGoBack}
-                  className="inline-flex items-center justify-center"
+                  leftIcon={<ArrowLeftIcon />}
                 >
-                  <ArrowLeftIcon className="h-5 w-5 mr-2" />
                   Go Back
                 </Button>
                 <Button
                   variant="primary"
                   onClick={this.handleReload}
-                  className="inline-flex items-center justify-center"
                 >
                   Reload Page
                 </Button>

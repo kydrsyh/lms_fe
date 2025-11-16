@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,33 +8,35 @@ import {
   SortingState,
   PaginationState,
   ColumnFiltersState,
-} from '@tanstack/react-table';
-import { sessionApi, SessionData, SessionFilters } from '../../api/sessionApi';
-import DashboardLayout from '../../components/templates/DashboardLayout';
-import { 
-  Button, 
-  ConfirmDialog, 
-  Card, 
+} from "@tanstack/react-table";
+import { sessionApi, SessionData, SessionFilters } from "../../api/sessionApi";
+import DashboardLayout from "../../components/templates/DashboardLayout";
+import {
+  Button,
+  ConfirmDialog,
+  Card,
   Dropdown,
   FilterPopover,
-  SearchPopover 
-} from '../../components/atoms';
-import { showErrorToast, showSuccessToast } from '../../utils/errorHandler';
-import { format } from 'date-fns';
-import { 
-  TrashIcon, 
+  SearchPopover,
+} from "../../components/atoms";
+import { showErrorToast, showSuccessToast } from "../../utils/errorHandler";
+import { format } from "date-fns";
+import {
+  TrashIcon,
   ComputerDesktopIcon,
   UserCircleIcon,
   ClockIcon,
   ChevronUpDownIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 const SessionManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
+  const [selectedSession, setSelectedSession] = useState<SessionData | null>(
+    null
+  );
   const [revokeAllUserId, setRevokeAllUserId] = useState<number | null>(null);
 
   // Server-side state
@@ -59,26 +61,26 @@ const SessionManagement: React.FC = () => {
   const filters: SessionFilters = {
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
-    sortBy: sorting[0]?.id || 'createdAt',
-    sortOrder: sorting[0]?.desc ? 'DESC' : 'ASC',
-    search: (debouncedFilters.find((f) => f.id === 'email')?.value as string) || '',
-    role: (debouncedFilters.find((f) => f.id === 'role')?.value as string) || '',
-    deviceType: (debouncedFilters.find((f) => f.id === 'deviceInfo')?.value as string) || '',
+    sortBy: sorting[0]?.id || "createdAt",
+    sortOrder: sorting[0]?.desc ? "DESC" : "ASC",
+    search:
+      (debouncedFilters.find((f) => f.id === "email")?.value as string) || "",
+    role:
+      (debouncedFilters.find((f) => f.id === "role")?.value as string) || "",
+    deviceType:
+      (debouncedFilters.find((f) => f.id === "deviceInfo")?.value as string) ||
+      "",
   };
 
   // Fetch sessions
-  const { 
-    data: response, 
-    isLoading, 
-    isFetching 
+  const {
+    data: response,
+    isLoading,
+    isFetching,
   } = useQuery({
-    queryKey: ['sessions', filters],
+    queryKey: ["sessions", filters],
     queryFn: () => sessionApi.getAllSessions(filters),
-    keepPreviousData: true,
     refetchInterval: 30000, // Refresh every 30 seconds
-    onError: (error) => {
-      showErrorToast(error, 'Failed to load sessions');
-    },
   });
 
   const sessions = response?.data || [];
@@ -86,7 +88,7 @@ const SessionManagement: React.FC = () => {
 
   // Fetch stats
   const { data: stats } = useQuery({
-    queryKey: ['session-stats'],
+    queryKey: ["session-stats"],
     queryFn: sessionApi.getSessionStats,
     refetchInterval: 30000,
   });
@@ -95,14 +97,14 @@ const SessionManagement: React.FC = () => {
   const revokeMutation = useMutation({
     mutationFn: sessionApi.revokeSession,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['session-stats'] });
-      showSuccessToast('Session revoked successfully');
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["session-stats"] });
+      showSuccessToast("Session revoked successfully");
       setRevokeDialogOpen(false);
       setSelectedSession(null);
     },
     onError: (error: any) => {
-      showErrorToast(error, 'Failed to revoke session');
+      showErrorToast(error, "Failed to revoke session");
     },
   });
 
@@ -110,14 +112,14 @@ const SessionManagement: React.FC = () => {
   const revokeAllMutation = useMutation({
     mutationFn: sessionApi.revokeUserSessions,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['session-stats'] });
-      showSuccessToast('All user sessions revoked successfully');
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["session-stats"] });
+      showSuccessToast("All user sessions revoked successfully");
       setRevokeDialogOpen(false);
       setRevokeAllUserId(null);
     },
     onError: (error: any) => {
-      showErrorToast(error, 'Failed to revoke user sessions');
+      showErrorToast(error, "Failed to revoke user sessions");
     },
   });
 
@@ -143,51 +145,55 @@ const SessionManagement: React.FC = () => {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'superadmin':
-        return 'bg-purple-100 text-purple-800';
-      case 'admin':
-        return 'bg-blue-100 text-blue-800';
-      case 'teacher':
-        return 'bg-green-100 text-green-800';
-      case 'student':
-        return 'bg-gray-100 text-gray-800';
+      case "superadmin":
+        return "bg-purple-100 text-purple-800";
+      case "admin":
+        return "bg-blue-100 text-blue-800";
+      case "teacher":
+        return "bg-green-100 text-green-800";
+      case "student":
+        return "bg-gray-100 text-gray-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getDeviceIcon = (deviceInfo: string) => {
-    if (deviceInfo.toLowerCase().includes('mobile')) {
-      return '📱';
-    } else if (deviceInfo.toLowerCase().includes('tablet')) {
-      return '📱';
+    if (deviceInfo.toLowerCase().includes("mobile")) {
+      return "📱";
+    } else if (deviceInfo.toLowerCase().includes("tablet")) {
+      return "📱";
     }
-    return '💻';
+    return "💻";
   };
 
   // Define columns
   const columns = useMemo<ColumnDef<SessionData>[]>(
     () => [
       {
-        accessorKey: 'id',
-        header: 'ID',
+        accessorKey: "id",
+        header: "ID",
         size: 70,
         enableColumnFilter: false,
         cell: (info) => (
-          <span className="text-sm text-gray-900 font-medium">#{info.getValue() as number}</span>
+          <span className="text-sm text-gray-900 font-medium">
+            #{info.getValue() as number}
+          </span>
         ),
       },
       {
-        id: 'email',
+        id: "email",
         accessorFn: (row) => row.user.email,
-        header: 'User',
+        header: "User",
         size: 250,
         enableColumnFilter: true,
         cell: (info) => {
           const session = info.row.original;
           return (
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-900">{session.user.email}</span>
+              <span className="text-sm font-medium text-gray-900">
+                {session.user.email}
+              </span>
               <span
                 className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium w-fit ${getRoleBadgeColor(
                   session.user.role
@@ -200,9 +206,9 @@ const SessionManagement: React.FC = () => {
         },
       },
       {
-        id: 'role',
+        id: "role",
         accessorFn: (row) => row.user.role,
-        header: 'Role',
+        header: "Role",
         size: 120,
         enableColumnFilter: true,
         cell: (info) => {
@@ -219,8 +225,8 @@ const SessionManagement: React.FC = () => {
         },
       },
       {
-        accessorKey: 'deviceInfo',
-        header: 'Device',
+        accessorKey: "deviceInfo",
+        header: "Device",
         size: 150,
         enableColumnFilter: true,
         cell: (info) => {
@@ -233,39 +239,41 @@ const SessionManagement: React.FC = () => {
         },
       },
       {
-        accessorKey: 'ipAddress',
-        header: 'IP Address',
+        accessorKey: "ipAddress",
+        header: "IP Address",
         size: 140,
         enableColumnFilter: false,
         cell: (info) => (
-          <span className="text-sm text-gray-600 font-mono">{info.getValue() as string}</span>
-        ),
-      },
-      {
-        accessorKey: 'createdAt',
-        header: 'Created',
-        size: 130,
-        enableColumnFilter: false,
-        cell: (info) => (
-          <span className="text-sm text-gray-600">
-            {format(new Date(info.getValue() as string), 'MMM dd, HH:mm')}
+          <span className="text-sm text-gray-600 font-mono">
+            {info.getValue() as string}
           </span>
         ),
       },
       {
-        accessorKey: 'expiresAt',
-        header: 'Expires',
+        accessorKey: "createdAt",
+        header: "Created",
         size: 130,
         enableColumnFilter: false,
         cell: (info) => (
           <span className="text-sm text-gray-600">
-            {format(new Date(info.getValue() as string), 'MMM dd, HH:mm')}
+            {format(new Date(info.getValue() as string), "MMM dd, HH:mm")}
           </span>
         ),
       },
       {
-        id: 'actions',
-        header: 'Actions',
+        accessorKey: "expiresAt",
+        header: "Expires",
+        size: 130,
+        enableColumnFilter: false,
+        cell: (info) => (
+          <span className="text-sm text-gray-600">
+            {format(new Date(info.getValue() as string), "MMM dd, HH:mm")}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
         size: 80,
         enableSorting: false,
         enableColumnFilter: false,
@@ -275,16 +283,16 @@ const SessionManagement: React.FC = () => {
             <Dropdown
               items={[
                 {
-                  label: 'Revoke Session',
+                  label: "Revoke Session",
                   onClick: () => handleRevokeClick(session),
                   icon: <TrashIcon className="h-4 w-4" />,
-                  variant: 'danger',
+                  variant: "danger",
                 },
                 {
-                  label: 'Revoke All User Sessions',
+                  label: "Revoke All User Sessions",
                   onClick: () => handleRevokeAllClick(session.userId),
                   icon: <TrashIcon className="h-4 w-4" />,
-                  variant: 'danger',
+                  variant: "danger",
                 },
               ]}
               align="right"
@@ -315,8 +323,12 @@ const SessionManagement: React.FC = () => {
   });
 
   // Calculate pagination info
-  const start = paginationMeta ? (paginationMeta.page - 1) * paginationMeta.limit + 1 : 0;
-  const end = paginationMeta ? Math.min(paginationMeta.page * paginationMeta.limit, paginationMeta.total) : 0;
+  const start = paginationMeta
+    ? (paginationMeta.page - 1) * paginationMeta.limit + 1
+    : 0;
+  const end = paginationMeta
+    ? Math.min(paginationMeta.page * paginationMeta.limit, paginationMeta.total)
+    : 0;
   const total = paginationMeta?.total || 0;
 
   // Generate smart page numbers
@@ -331,11 +343,18 @@ const SessionManagement: React.FC = () => {
       }
     } else {
       if (page <= 3) {
-        pages.push(1, 2, 3, 4, '...', totalPages);
+        pages.push(1, 2, 3, 4, "...", totalPages);
       } else if (page >= totalPages - 2) {
-        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
       } else {
-        pages.push(1, '...', page - 1, page, page + 1, '...', totalPages);
+        pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
       }
     }
 
@@ -347,7 +366,9 @@ const SessionManagement: React.FC = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Session Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Session Management
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
             Monitor and manage active user sessions
           </p>
@@ -362,7 +383,9 @@ const SessionManagement: React.FC = () => {
                   <ComputerDesktopIcon className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Active Sessions</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Active Sessions
+                  </p>
                   <p className="text-2xl font-semibold text-gray-900">
                     {stats.totalActiveSessions}
                   </p>
@@ -376,7 +399,9 @@ const SessionManagement: React.FC = () => {
                   <UserCircleIcon className="h-6 w-6 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Active Users</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Active Users
+                  </p>
                   <p className="text-2xl font-semibold text-gray-900">
                     {stats.uniqueActiveUsers}
                   </p>
@@ -390,7 +415,9 @@ const SessionManagement: React.FC = () => {
                   <ClockIcon className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Expiring Soon</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Expiring Soon
+                  </p>
                   <p className="text-2xl font-semibold text-gray-900">
                     {stats.expiringSoon}
                   </p>
@@ -454,19 +481,23 @@ const SessionManagement: React.FC = () => {
                               <div
                                 className={`flex items-center gap-1 ${
                                   header.column.getCanSort()
-                                    ? 'cursor-pointer hover:text-gray-700'
-                                    : ''
+                                    ? "cursor-pointer hover:text-gray-700"
+                                    : ""
                                 }`}
                                 onClick={header.column.getToggleSortingHandler()}
                               >
                                 <span>
-                                  {flexRender(header.column.columnDef.header, header.getContext())}
+                                  {flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
                                 </span>
                                 {header.column.getCanSort() && (
                                   <span className="text-gray-400">
-                                    {header.column.getIsSorted() === 'asc' ? (
+                                    {header.column.getIsSorted() === "asc" ? (
                                       <ChevronUpIcon className="h-4 w-4" />
-                                    ) : header.column.getIsSorted() === 'desc' ? (
+                                    ) : header.column.getIsSorted() ===
+                                      "desc" ? (
                                       <ChevronDownIcon className="h-4 w-4" />
                                     ) : (
                                       <ChevronUpDownIcon className="h-4 w-4" />
@@ -481,41 +512,63 @@ const SessionManagement: React.FC = () => {
                                   className="flex items-center"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  {header.column.id === 'email' && (
+                                  {header.column.id === "email" && (
                                     <SearchPopover
-                                      value={(header.column.getFilterValue() ?? '') as string}
-                                      onChange={(value) => header.column.setFilterValue(value)}
+                                      value={
+                                        (header.column.getFilterValue() ??
+                                          "") as string
+                                      }
+                                      onChange={(value) =>
+                                        header.column.setFilterValue(value)
+                                      }
                                       placeholder="Search by email..."
                                     />
                                   )}
 
-                                  {header.column.id === 'role' && (
+                                  {header.column.id === "role" && (
                                     <FilterPopover
-                                      value={(header.column.getFilterValue() ?? '') as string}
-                                      onChange={(value) => header.column.setFilterValue(value)}
+                                      value={
+                                        (header.column.getFilterValue() ??
+                                          "") as string
+                                      }
+                                      onChange={(value) =>
+                                        header.column.setFilterValue(value)
+                                      }
                                       placeholder="Filter by Role"
-                                      hasActiveFilter={!!header.column.getFilterValue()}
+                                      hasActiveFilter={
+                                        !!header.column.getFilterValue()
+                                      }
                                       options={[
-                                        { value: '', label: 'All Roles' },
-                                        { value: 'superadmin', label: 'Superadmin' },
-                                        { value: 'admin', label: 'Admin' },
-                                        { value: 'teacher', label: 'Teacher' },
-                                        { value: 'student', label: 'Student' },
+                                        { value: "", label: "All Roles" },
+                                        {
+                                          value: "superadmin",
+                                          label: "Superadmin",
+                                        },
+                                        { value: "admin", label: "Admin" },
+                                        { value: "teacher", label: "Teacher" },
+                                        { value: "student", label: "Student" },
                                       ]}
                                     />
                                   )}
 
-                                  {header.column.id === 'deviceInfo' && (
+                                  {header.column.id === "deviceInfo" && (
                                     <FilterPopover
-                                      value={(header.column.getFilterValue() ?? '') as string}
-                                      onChange={(value) => header.column.setFilterValue(value)}
+                                      value={
+                                        (header.column.getFilterValue() ??
+                                          "") as string
+                                      }
+                                      onChange={(value) =>
+                                        header.column.setFilterValue(value)
+                                      }
                                       placeholder="Filter by Device"
-                                      hasActiveFilter={!!header.column.getFilterValue()}
+                                      hasActiveFilter={
+                                        !!header.column.getFilterValue()
+                                      }
                                       options={[
-                                        { value: '', label: 'All Devices' },
-                                        { value: 'Desktop', label: 'Desktop' },
-                                        { value: 'Mobile', label: 'Mobile' },
-                                        { value: 'Tablet', label: 'Tablet' },
+                                        { value: "", label: "All Devices" },
+                                        { value: "Desktop", label: "Desktop" },
+                                        { value: "Mobile", label: "Mobile" },
+                                        { value: "Tablet", label: "Tablet" },
                                       ]}
                                     />
                                   )}
@@ -546,13 +599,19 @@ const SessionManagement: React.FC = () => {
                       </tr>
                     ) : (
                       table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={row.id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
                           {row.getVisibleCells().map((cell) => (
                             <td
                               key={cell.id}
                               className="px-4 lg:px-6 py-4 whitespace-nowrap"
                             >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
                             </td>
                           ))}
                         </tr>
@@ -567,8 +626,8 @@ const SessionManagement: React.FC = () => {
                 <div className="px-4 lg:px-6 py-4 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-gray-700 text-center sm:text-left">
-                      Showing <span className="font-medium">{start}</span> to{' '}
-                      <span className="font-medium">{end}</span> of{' '}
+                      Showing <span className="font-medium">{start}</span> to{" "}
+                      <span className="font-medium">{end}</span> of{" "}
                       <span className="font-medium">{total}</span> sessions
                     </div>
 
@@ -585,9 +644,12 @@ const SessionManagement: React.FC = () => {
                       {/* Page Numbers - Hidden on mobile */}
                       <div className="hidden sm:flex items-center gap-1">
                         {generatePageNumbers().map((pageNum, index) => {
-                          if (pageNum === '...') {
+                          if (pageNum === "...") {
                             return (
-                              <span key={`ellipsis-${index}`} className="px-3 py-1 text-gray-400">
+                              <span
+                                key={`ellipsis-${index}`}
+                                className="px-3 py-1 text-gray-400"
+                              >
                                 ...
                               </span>
                             );
@@ -597,7 +659,9 @@ const SessionManagement: React.FC = () => {
                               key={pageNum}
                               size="sm"
                               variant={
-                                paginationMeta.page === pageNum ? 'primary' : 'outline'
+                                paginationMeta.page === pageNum
+                                  ? "primary"
+                                  : "outline"
                               }
                               onClick={() =>
                                 table.setPageIndex((pageNum as number) - 1)
@@ -634,13 +698,12 @@ const SessionManagement: React.FC = () => {
             setRevokeAllUserId(null);
           }}
           onConfirm={handleConfirmRevoke}
-          title={selectedSession ? 'Revoke Session' : 'Revoke All Sessions'}
+          title={selectedSession ? "Revoke Session" : "Revoke All Sessions"}
           message={
             selectedSession
               ? `Are you sure you want to revoke this session for ${selectedSession.user.email}? The user will be logged out immediately.`
-              : 'Are you sure you want to revoke all sessions for this user? They will be logged out from all devices immediately.'
+              : "Are you sure you want to revoke all sessions for this user? They will be logged out from all devices immediately."
           }
-          isDanger
           confirmText="Revoke"
           isLoading={revokeMutation.isPending || revokeAllMutation.isPending}
         />

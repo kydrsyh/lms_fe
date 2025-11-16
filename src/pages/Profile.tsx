@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import { authApi } from '../api/authApi';
+import { userApi } from '../api/userApi';
 import DashboardLayout from '../components/templates/DashboardLayout';
-import { Button, ConfirmDialog } from '../components/atoms';
+import { Button, ConfirmDialog, Modal, ImageUploader } from '../components/atoms';
 import { format } from 'date-fns';
 import { 
   TrashIcon, 
@@ -13,7 +14,8 @@ import {
   ShieldCheckIcon,
   ClockIcon,
   MapPinIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +35,14 @@ const Profile: React.FC = () => {
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [logoutAllDialogOpen, setLogoutAllDialogOpen] = useState(false);
+  const [imageUploadModalOpen, setImageUploadModalOpen] = useState(false);
+  const [deleteImageDialogOpen, setDeleteImageDialogOpen] = useState(false);
+
+  // Fetch user profile
+  const { data: profileData } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: userApi.getProfile,
+  });
 
   // Fetch devices
   const { data: devices, isLoading } = useQuery({
@@ -68,6 +78,19 @@ const Profile: React.FC = () => {
     },
   });
 
+  // Delete profile image mutation
+  const deleteImageMutation = useMutation({
+    mutationFn: userApi.deleteProfileImage,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      toast.success('Profile image deleted successfully');
+      setDeleteImageDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to delete profile image');
+    },
+  });
+
   const handleRevokeClick = (device: Device) => {
     setSelectedDevice(device);
     setRevokeDialogOpen(true);
@@ -85,6 +108,25 @@ const Profile: React.FC = () => {
 
   const handleConfirmLogoutAll = () => {
     logoutAllMutation.mutate();
+  };
+
+  const handleUploadSuccess = async (result: { fileKey: string; publicUrl: string }) => {
+    try {
+      await userApi.updateProfileImage(result.publicUrl, result.fileKey);
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      toast.success('Profile image updated successfully');
+      setImageUploadModalOpen(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update profile image');
+    }
+  };
+
+  const handleDeleteImage = () => {
+    setDeleteImageDialogOpen(true);
+  };
+
+  const handleConfirmDeleteImage = () => {
+    deleteImageMutation.mutate();
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -125,22 +167,52 @@ const Profile: React.FC = () => {
         {/* Profile Card */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <UserCircleIcon className="h-20 w-20 text-white" />
-              </div>
-              <div className="ml-6 text-white">
-                <h2 className="text-2xl font-bold">{user?.email}</h2>
-                <div className="mt-2 flex items-center space-x-2">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleBadgeColor(
-                      user?.role || ''
-                    )}`}
-                  >
-                    <ShieldCheckIcon className="h-4 w-4 mr-1" />
-                    {user?.role}
-                  </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 relative">
+                  {profileData?.data?.profileImage ? (
+                    <img
+                      src={profileData.data.profileImage}
+                      alt="Profile"
+                      className="h-20 w-20 rounded-full object-cover border-4 border-white"
+                    />
+                  ) : (
+                    <UserCircleIcon className="h-20 w-20 text-white" />
+                  )}
                 </div>
+                <div className="ml-6 text-white">
+                  <h2 className="text-2xl font-bold">{user?.email}</h2>
+                  <div className="mt-2 flex items-center space-x-2">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleBadgeColor(
+                        user?.role || ''
+                      )}`}
+                    >
+                      <ShieldCheckIcon className="h-4 w-4 mr-1" />
+                      {user?.role}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setImageUploadModalOpen(true)}
+                  leftIcon={<PencilIcon />}
+                  className="bg-white text-primary-600 hover:bg-gray-50"
+                >
+                  {profileData?.data?.profileImage ? 'Change' : 'Upload'} Photo
+                </Button>
+                {profileData?.data?.profileImage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeleteImage}
+                    leftIcon={<TrashIcon />}
+                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -240,9 +312,8 @@ const Profile: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleRevokeClick(device)}
-                      className="inline-flex items-center"
+                      leftIcon={<TrashIcon />}
                     >
-                      <TrashIcon className="h-4 w-4 mr-1" />
                       Revoke
                     </Button>
                   </div>
@@ -289,6 +360,32 @@ const Profile: React.FC = () => {
           type="danger"
           confirmText="Logout All"
           isLoading={logoutAllMutation.isPending}
+        />
+
+        {/* Image Upload Modal */}
+        <Modal
+          isOpen={imageUploadModalOpen}
+          onClose={() => setImageUploadModalOpen(false)}
+          title="Upload Profile Photo"
+        >
+          <ImageUploader
+            onUploadSuccess={handleUploadSuccess}
+            folder="profile-images"
+            existingImageUrl={profileData?.data?.profileImage || undefined}
+            maxSizeMB={2}
+          />
+        </Modal>
+
+        {/* Delete Image Dialog */}
+        <ConfirmDialog
+          isOpen={deleteImageDialogOpen}
+          onClose={() => setDeleteImageDialogOpen(false)}
+          onConfirm={handleConfirmDeleteImage}
+          title="Delete Profile Photo"
+          message="Are you sure you want to delete your profile photo?"
+          type="warning"
+          confirmText="Delete"
+          isLoading={deleteImageMutation.isPending}
         />
       </div>
     </DashboardLayout>

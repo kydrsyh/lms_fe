@@ -1,6 +1,6 @@
-import React from 'react';
-import Modal from './Modal';
-import Button from './Button';
+import React from "react";
+import Modal from "./Modal";
+import Button from "./Button";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  type?: 'danger' | 'warning' | 'info';
+  type?: "danger" | "warning" | "info";
   isLoading?: boolean;
 }
 
@@ -20,23 +20,17 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  type = 'info',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  type = "info",
   isLoading = false,
 }) => {
-  const iconColors = {
-    danger: 'bg-red-100 text-red-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    info: 'bg-blue-100 text-blue-600',
-  };
-  
   const buttonVariants = {
-    danger: 'danger' as const,
-    warning: 'primary' as const,
-    info: 'primary' as const,
+    danger: "danger" as const,
+    warning: "primary" as const,
+    info: "primary" as const,
   };
-  
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div className="mt-2">
@@ -44,11 +38,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       </div>
 
       <div className="mt-6 flex gap-3 justify-end">
-        <Button
-          variant="outline"
-          onClick={onClose}
-          disabled={isLoading}
-        >
+        <Button variant="outline" onClick={onClose} disabled={isLoading}>
           {cancelText}
         </Button>
         <Button
@@ -65,4 +55,3 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 };
 
 export default ConfirmDialog;
-

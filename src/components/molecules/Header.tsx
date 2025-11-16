@@ -1,12 +1,15 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
+import { authApi } from '../../api/authApi';
+import { userApi } from '../../api/userApi';
+import toast from 'react-hot-toast';
 import { 
   Bars3Icon,
   BellIcon,
-  UserCircleIcon,
   ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
   UserIcon,
@@ -20,11 +23,43 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, refreshToken } = useAppSelector((state) => state.auth);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+  // Fetch user profile untuk get profile image
+  const { data: profileData } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: userApi.getProfile,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    setIsLoggingOut(true);
+    
+    try {
+      // Call backend to revoke session
+      if (refreshToken) {
+        await authApi.logout(refreshToken);
+      }
+      
+      // Clear local state
+      dispatch(logout());
+      
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      
+      // Even if backend call fails, still logout locally
+      dispatch(logout());
+      navigate('/login');
+      
+      toast.error(error.response?.data?.message || 'Logged out (session may still be active)');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -65,9 +100,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 <p className="text-sm font-medium text-gray-900">{user?.email}</p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
               </div>
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full text-white font-semibold">
-                {user?.email.charAt(0).toUpperCase()}
-              </div>
+              {profileData?.data?.profileImage ? (
+                <img
+                  src={profileData.data.profileImage}
+                  alt="Profile"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-primary-200"
+                />
+              ) : (
+                <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full text-white font-semibold">
+                  {user?.email.charAt(0).toUpperCase()}
+                </div>
+              )}
             </Menu.Button>
 
             <Transition
@@ -81,9 +124,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             >
               <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                 <div className="p-2">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900">{user?.email}</p>
-                    <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                  <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-3">
+                    {profileData?.data?.profileImage ? (
+                      <img
+                        src={profileData.data.profileImage}
+                        alt="Profile"
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full text-white font-semibold">
+                        {user?.email.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+                      <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                    </div>
                   </div>
 
                   <Menu.Item>
@@ -121,13 +177,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                       {({ active }) => (
                         <button
                           onClick={handleLogout}
+                          disabled={isLoggingOut}
                           className={clsx(
-                            'flex items-center gap-3 w-full px-3 py-2 text-sm rounded-md',
-                            active ? 'bg-red-50 text-red-700' : 'text-red-600'
+                            'flex items-center gap-3 w-full px-3 py-2 text-sm rounded-md transition-colors',
+                            active ? 'bg-red-50 text-red-700' : 'text-red-600',
+                            isLoggingOut && 'opacity-50 cursor-not-allowed'
                           )}
                         >
-                          <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                          <span>Logout</span>
+                          <ArrowRightOnRectangleIcon className={clsx(
+                            'h-5 w-5',
+                            isLoggingOut && 'animate-spin'
+                          )} />
+                          <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
                         </button>
                       )}
                     </Menu.Item>

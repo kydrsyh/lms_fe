@@ -20,13 +20,11 @@ import {
 import { userApi, UserData, UserFilters } from "../../api/userApi";
 import PermissionEditor from "../../components/organisms/PermissionEditor";
 import { format } from "date-fns";
-import toast from "react-hot-toast";
 import { showErrorToast, showSuccessToast } from "../../utils/errorHandler";
 import {
   PencilIcon,
   CheckCircleIcon,
   XCircleIcon,
-  MagnifyingGlassIcon,
   ChevronUpDownIcon,
   ChevronUpIcon,
   ChevronDownIcon,
@@ -77,23 +75,15 @@ const UserManagement: React.FC = () => {
     data: usersResponse,
     isLoading,
     isFetching,
-    error: fetchError,
   } = useQuery({
     queryKey: ["users", filters],
     queryFn: () => userApi.getAll(filters),
-    keepPreviousData: true,
-    onError: (error) => {
-      showErrorToast(error, "Failed to load users");
-    },
   });
 
   // Fetch stats
   const { data: statsResponse } = useQuery({
     queryKey: ["userStats"],
     queryFn: userApi.getStats,
-    onError: (error) => {
-      showErrorToast(error, "Failed to load statistics");
-    },
   });
 
   // Toggle user access mutation
@@ -157,9 +147,25 @@ const UserManagement: React.FC = () => {
     return colors[role] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
-  const users = usersResponse?.data || [];
-  const paginationMeta = usersResponse?.pagination;
-  const stats = statsResponse?.data;
+  // Safely extract users, pagination, and stats with correct type checks
+  const users =
+    usersResponse &&
+    typeof usersResponse === "object" &&
+    "data" in usersResponse
+      ? (usersResponse as { data: UserData[] }).data
+      : [];
+  const paginationMeta =
+    usersResponse &&
+    typeof usersResponse === "object" &&
+    "pagination" in usersResponse
+      ? (usersResponse as { pagination: any }).pagination
+      : undefined;
+  const stats =
+    statsResponse &&
+    typeof statsResponse === "object" &&
+    "data" in statsResponse
+      ? (statsResponse as { data: any }).data
+      : undefined;
 
   // Define columns
   const columns = useMemo<ColumnDef<UserData>[]>(

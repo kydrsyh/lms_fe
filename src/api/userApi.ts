@@ -3,9 +3,12 @@ import apiClient from './client';
 export interface UserData {
   id: number;
   email: string;
-  role: 'superadmin' | 'admin' | 'teacher' | 'student';
+  role: 'developer' | 'superadmin' | 'admin' | 'teacher' | 'student';
   permissions?: any;
   isActive: boolean;
+  twoFactorEnabled?: boolean;
+  profileImage?: string | null;
+  profileImageKey?: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
@@ -74,6 +77,24 @@ export const userApi = {
 
   updatePermissions: async (userId: number, permissions: any) => {
     const response = await apiClient.patch(`/users/${userId}/permissions`, { permissions });
+    return response.data;
+  },
+
+  getProfile: async () => {
+    const response = await apiClient.get<{ success: boolean; data: UserData }>('/users/profile');
+    return response.data;
+  },
+
+  updateProfileImage: async (profileImage: string, profileImageKey: string) => {
+    const response = await apiClient.patch('/users/profile/image', {
+      profileImage,
+      profileImageKey,
+    });
+    return response.data;
+  },
+
+  deleteProfileImage: async () => {
+    const response = await apiClient.delete('/users/profile/image');
     return response.data;
   },
 };

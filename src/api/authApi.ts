@@ -4,17 +4,21 @@ import axios from 'axios';
 export interface LoginCredentials {
   email: string;
   password: string;
+  twoFactorToken?: string;
+  backupCode?: string;
 }
 
 export interface LoginResponse {
   success: boolean;
-  data: {
+  requiresTwoFactor?: boolean;
+  message?: string;
+  data?: {
     accessToken: string;
     refreshToken: string;
     user: {
       id: number;
       email: string;
-      role: 'admin' | 'teacher' | 'student';
+      role: 'developer' | 'superadmin' | 'admin' | 'teacher' | 'student';
     };
   };
 }

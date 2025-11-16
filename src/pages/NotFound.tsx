@@ -23,17 +23,15 @@ const NotFound: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => navigate(-1)}
-            className="inline-flex items-center justify-center"
+            leftIcon={<ArrowLeftIcon />}
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
             Go Back
           </Button>
           <Button
             variant="primary"
             onClick={() => navigate('/')}
-            className="inline-flex items-center justify-center"
+            leftIcon={<HomeIcon />}
           >
-            <HomeIcon className="h-5 w-5 mr-2" />
             Go Home
           </Button>
         </div>

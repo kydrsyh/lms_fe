@@ -8,4 +8,5 @@ export { default as Card } from './Card';
 export { default as Dropdown } from './Dropdown';
 export { default as FilterPopover } from './FilterPopover';
 export { default as SearchPopover } from './SearchPopover';
+export { default as ImageUploader } from './ImageUploader';
 

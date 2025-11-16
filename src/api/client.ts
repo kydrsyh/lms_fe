@@ -1,11 +1,11 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { store } from '../store/store';
-import { updateAccessToken, logout } from '../store/slices/authSlice';
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { store } from "../store/store";
+import { updateAccessToken, logout } from "../store/slices/authSlice";
 
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: "/api",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -14,11 +14,11 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const state = store.getState();
     const token = state.auth.accessToken;
-    
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -41,15 +41,17 @@ const processQueue = (error: Error | null, token: string | null = null) => {
       prom.resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -65,55 +67,61 @@ apiClient.interceptors.response.use(
             return Promise.reject(err);
           });
       }
-      
+
       originalRequest._retry = true;
       isRefreshing = true;
-      
+
       const state = store.getState();
       const refreshToken = state.auth.refreshToken;
-      
+
       if (!refreshToken) {
-        console.error('No refresh token available, logging out');
+        console.error("No refresh token available, logging out");
         store.dispatch(logout());
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(error);
       }
-      
+
       try {
-        const response = await axios.post('/api/auth/refresh', { refreshToken });
+        const response = await axios.post("/api/auth/refresh", {
+          refreshToken,
+        });
         const { accessToken } = response.data.data;
-        
+
         store.dispatch(updateAccessToken(accessToken));
-        
+
         processQueue(null, accessToken);
-        
+
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
-        
+
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as Error, null);
         store.dispatch(logout());
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
-    
+
     // Log all errors for debugging
-    console.error('API Error:', {
+    console.error("API Error:", {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
-      message: error.response?.data?.message || error.message,
+      message:
+        (error.response?.data &&
+        typeof error.response.data === "object" &&
+        "message" in error.response.data
+          ? (error.response.data as { message?: string }).message
+          : undefined) || error.message,
       data: error.response?.data,
     });
-    
+
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
-

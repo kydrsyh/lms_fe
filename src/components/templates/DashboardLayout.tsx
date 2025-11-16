@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import Sidebar from '../molecules/Sidebar';
-import Header from '../molecules/Header';
+import React, { useState } from "react";
+import Sidebar from "../molecules/Sidebar";
+import Header from "../molecules/Header";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -21,9 +21,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 lg:px-6 py-6">
-            {children}
-          </div>
+          <div className="container mx-auto px-4 lg:px-6 py-6">{children}</div>
         </main>
       </div>
     </div>

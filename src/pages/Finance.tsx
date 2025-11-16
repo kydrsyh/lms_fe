@@ -104,9 +104,8 @@ const Finance: React.FC = () => {
             variant="primary"
             onClick={handleCreate}
             disabled={createMutation.isPending}
-            className="inline-flex items-center"
+            leftIcon={<PlusIcon />}
           >
-            <PlusIcon className="h-5 w-5 mr-2" />
             {createMutation.isPending ? 'Creating...' : 'Create Transaction'}
           </Button>
         </div>
@@ -203,18 +202,16 @@ const Finance: React.FC = () => {
                     variant="outline"
                     onClick={() => setEditDialogOpen(true)}
                     disabled={editMutation.isPending}
-                    className="inline-flex items-center"
+                    leftIcon={<PencilIcon />}
                   >
-                    <PencilIcon className="h-4 w-4 mr-2" />
                     Edit Report
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => setDeleteDialogOpen(true)}
                     disabled={deleteMutation.isPending}
-                    className="inline-flex items-center"
+                    leftIcon={<TrashIcon />}
                   >
-                    <TrashIcon className="h-4 w-4 mr-2" />
                     Delete Report
                   </Button>
                 </div>
