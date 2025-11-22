@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DashboardLayout } from '../../components/templates';
-import { Card, Button, Input, Modal } from '../../components/atoms';
-import { twoFactorApi } from '../../api/twoFactorApi';
-import { userApi } from '../../api/userApi';
-import { showErrorToast, showSuccessToast } from '../../utils/errorHandler';
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DashboardLayout } from "../../components/templates";
+import { Card, Button, Input, Modal } from "../../components/atoms";
+import { twoFactorApi } from "../../api/twoFactorApi";
+import { userApi } from "../../api/userApi";
+import { showErrorToast, showSuccessToast } from "../../utils/errorHandler";
 import {
   ShieldCheckIcon,
   QrCodeIcon,
@@ -12,70 +12,93 @@ import {
   ClipboardDocumentIcon,
   CheckCircleIcon as CheckCircleIconOutline,
   XCircleIcon,
-} from '@heroicons/react/24/outline';
-import { CheckCircleIcon } from '@heroicons/react/24/solid';
+} from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 
 const TwoFactorAuth: React.FC = () => {
   const queryClient = useQueryClient();
   const [setupModalOpen, setSetupModalOpen] = useState(false);
   const [disableModalOpen, setDisableModalOpen] = useState(false);
-  const [verifyToken, setVerifyToken] = useState('');
-  const [disableToken, setDisableToken] = useState('');
-  const [tempSecret, setTempSecret] = useState('');
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [verifyToken, setVerifyToken] = useState("");
+  const [disableToken, setDisableToken] = useState("");
+  const [tempSecret, setTempSecret] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 
   // Fetch current user profile to check 2FA status
-  const { data: userProfile, isLoading: profileLoading } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: userApi.getProfile,
-    onError: (error) => {
-      showErrorToast(error, 'Failed to load profile');
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    isError: profileIsError,
+    error: profileError,
+  } = useQuery<any, unknown>({
+    queryKey: ["userProfile"],
+    queryFn: async () => {
+      const res = await userApi.getProfile();
+      return res.data;
     },
   });
 
-  const is2FAEnabled = userProfile?.data?.twoFactorEnabled || false;
+  useEffect(() => {
+    if (profileIsError) {
+      showErrorToast(profileError, "Failed to load profile");
+    }
+  }, [profileIsError, profileError]);
+
+  const is2FAEnabled = userProfile?.twoFactorEnabled || false;
 
   // Generate secret mutation
-  const generateSecretMutation = useMutation({
+  const generateSecretMutation = useMutation<
+    { success: boolean; data: import('../../api/twoFactorApi').TwoFactorSecret },
+    unknown,
+    void
+  >({
     mutationFn: twoFactorApi.generateSecret,
     onSuccess: (data) => {
       setTempSecret(data.data.secret);
       setQrCodeUrl(data.data.qrCodeDataUrl);
       setSetupModalOpen(true);
     },
-    onError: (error) => {
-      showErrorToast(error, 'Failed to generate 2FA secret');
+    onError: (error: unknown) => {
+      showErrorToast(error, "Failed to generate 2FA secret");
     },
   });
 
   // Enable 2FA mutation
-  const enableMutation = useMutation({
+  const enableMutation = useMutation<
+    import('../../api/twoFactorApi').TwoFactorEnableResponse,
+    unknown,
+    import('../../api/twoFactorApi').TwoFactorVerifyPayload
+  >({
     mutationFn: twoFactorApi.enable,
     onSuccess: (data) => {
       showSuccessToast(data.message);
       setBackupCodes(data.data.backupCodes);
       setShowBackupCodes(true);
-      setVerifyToken('');
-      queryClient.invalidateQueries(['userProfile']);
+      setVerifyToken("");
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
-    onError: (error) => {
-      showErrorToast(error, 'Failed to enable 2FA');
+    onError: (error: unknown) => {
+      showErrorToast(error, "Failed to enable 2FA");
     },
   });
 
   // Disable 2FA mutation
-  const disableMutation = useMutation({
+  const disableMutation = useMutation<
+    { success: boolean; message: string },
+    unknown,
+    import('../../api/twoFactorApi').TwoFactorDisablePayload
+  >({
     mutationFn: twoFactorApi.disable,
     onSuccess: (data) => {
       showSuccessToast(data.message);
       setDisableModalOpen(false);
-      setDisableToken('');
-      queryClient.invalidateQueries(['userProfile']);
+      setDisableToken("");
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
-    onError: (error) => {
-      showErrorToast(error, 'Failed to disable 2FA');
+    onError: (error: unknown) => {
+      showErrorToast(error, "Failed to disable 2FA");
     },
   });
 
@@ -85,7 +108,7 @@ const TwoFactorAuth: React.FC = () => {
 
   const handleVerifyAndEnable = () => {
     if (verifyToken.length !== 6) {
-      showErrorToast(new Error('Invalid token'), 'Please enter a 6-digit code');
+      showErrorToast(new Error("Invalid token"), "Please enter a 6-digit code");
       return;
     }
 
@@ -97,7 +120,7 @@ const TwoFactorAuth: React.FC = () => {
 
   const handleDisable = () => {
     if (disableToken.length !== 6) {
-      showErrorToast(new Error('Invalid token'), 'Please enter a 6-digit code');
+      showErrorToast(new Error("Invalid token"), "Please enter a 6-digit code");
       return;
     }
 
@@ -109,20 +132,20 @@ const TwoFactorAuth: React.FC = () => {
   const handleCloseSetup = () => {
     setSetupModalOpen(false);
     setShowBackupCodes(false);
-    setVerifyToken('');
-    setTempSecret('');
-    setQrCodeUrl('');
+    setVerifyToken("");
+    setTempSecret("");
+    setQrCodeUrl("");
     setBackupCodes([]);
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    showSuccessToast('Copied to clipboard');
+    showSuccessToast("Copied to clipboard");
   };
 
   const copyAllBackupCodes = () => {
-    navigator.clipboard.writeText(backupCodes.join('\n'));
-    showSuccessToast('All backup codes copied');
+    navigator.clipboard.writeText(backupCodes.join("\n"));
+    showSuccessToast("All backup codes copied");
   };
 
   if (profileLoading) {
@@ -142,12 +165,19 @@ const TwoFactorAuth: React.FC = () => {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-3">Two-Factor Authentication</h1>
+              <h1 className="text-3xl font-bold mb-3">
+                Two-Factor Authentication
+              </h1>
               <p className="text-blue-100 text-lg">
-                Protect your developer account with an additional layer of security
+                Protect your developer account with an additional layer of
+                security
               </p>
             </div>
-            <div className={`p-4 rounded-full ${is2FAEnabled ? 'bg-green-500' : 'bg-amber-500'}`}>
+            <div
+              className={`p-4 rounded-full ${
+                is2FAEnabled ? "bg-green-500" : "bg-amber-500"
+              }`}
+            >
               {is2FAEnabled ? (
                 <CheckCircleIconOutline className="w-8 h-8" />
               ) : (
@@ -162,11 +192,17 @@ const TwoFactorAuth: React.FC = () => {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">Current Status</h3>
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                  Current Status
+                </h3>
                 <p className="text-slate-600">
-                  Two-factor authentication is currently{' '}
-                  <span className={`font-semibold ${is2FAEnabled ? 'text-green-600' : 'text-red-600'}`}>
-                    {is2FAEnabled ? 'enabled' : 'disabled'}
+                  Two-factor authentication is currently{" "}
+                  <span
+                    className={`font-semibold ${
+                      is2FAEnabled ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {is2FAEnabled ? "enabled" : "disabled"}
                   </span>
                 </p>
               </div>
@@ -193,29 +229,31 @@ const TwoFactorAuth: React.FC = () => {
                     <Button
                       variant="primary"
                       onClick={handleStartSetup}
-                      disabled={generateSecretMutation.isLoading}
+                      disabled={generateSecretMutation.isPending}
                     >
-                      {generateSecretMutation.isLoading ? 'Loading...' : 'Enable 2FA'}
+                      {generateSecretMutation.isPending ? "Loading..." : "Enable 2FA"}
                     </Button>
                   </div>
                 )}
               </div>
             </div>
-            
+
             {is2FAEnabled && (
               <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm text-green-800">
-                  <strong>Protected:</strong> Your account is secured with two-factor authentication. 
-                  You'll need your authenticator app to sign in.
+                  <strong>Protected:</strong> Your account is secured with
+                  two-factor authentication. You'll need your authenticator app
+                  to sign in.
                 </p>
               </div>
             )}
-            
+
             {!is2FAEnabled && (
               <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
                 <p className="text-sm text-amber-800">
-                  <strong>Warning:</strong> Your account is not protected by two-factor authentication. 
-                  Enable it now for enhanced security.
+                  <strong>Warning:</strong> Your account is not protected by
+                  two-factor authentication. Enable it now for enhanced
+                  security.
                 </p>
               </div>
             )}
@@ -236,8 +274,9 @@ const TwoFactorAuth: React.FC = () => {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Two-factor authentication adds an extra layer of security by requiring a 6-digit code 
-                from your authenticator app in addition to your password when logging in.
+                Two-factor authentication adds an extra layer of security by
+                requiring a 6-digit code from your authenticator app in addition
+                to your password when logging in.
               </p>
             </div>
           </Card>
@@ -285,36 +324,41 @@ const TwoFactorAuth: React.FC = () => {
               {[
                 {
                   step: 1,
-                  title: 'Download Authenticator App',
-                  desc: 'Install Google Authenticator or any TOTP-compatible app on your mobile device',
+                  title: "Download Authenticator App",
+                  desc: "Install Google Authenticator or any TOTP-compatible app on your mobile device",
                 },
                 {
                   step: 2,
-                  title: 'Click Enable 2FA',
+                  title: "Click Enable 2FA",
                   desc: 'Click the "Enable 2FA" button above to generate your QR code',
                 },
                 {
                   step: 3,
-                  title: 'Scan QR Code',
-                  desc: 'Open your authenticator app and scan the displayed QR code',
+                  title: "Scan QR Code",
+                  desc: "Open your authenticator app and scan the displayed QR code",
                 },
                 {
                   step: 4,
-                  title: 'Enter Verification Code',
-                  desc: 'Enter the 6-digit code from your app to complete setup',
+                  title: "Enter Verification Code",
+                  desc: "Enter the 6-digit code from your app to complete setup",
                 },
                 {
                   step: 5,
-                  title: 'Save Backup Codes',
-                  desc: 'Store your backup codes securely for account recovery',
+                  title: "Save Backup Codes",
+                  desc: "Store your backup codes securely for account recovery",
                 },
               ].map((item) => (
-                <div key={item.step} className="flex gap-4 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <div
+                  key={item.step}
+                  className="flex gap-4 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                >
                   <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-semibold">
                     {item.step}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-slate-900 mb-1">{item.title}</h4>
+                    <h4 className="font-semibold text-slate-900 mb-1">
+                      {item.title}
+                    </h4>
                     <p className="text-sm text-slate-600">{item.desc}</p>
                   </div>
                 </div>
@@ -380,7 +424,11 @@ const TwoFactorAuth: React.FC = () => {
                   <Input
                     type="text"
                     value={verifyToken}
-                    onChange={(e) => setVerifyToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) =>
+                      setVerifyToken(
+                        e.target.value.replace(/\D/g, "").slice(0, 6)
+                      )
+                    }
                     placeholder="000000"
                     maxLength={6}
                     className="text-center text-3xl tracking-[0.5em] font-mono font-bold"
@@ -397,9 +445,9 @@ const TwoFactorAuth: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={handleVerifyAndEnable}
-                    disabled={verifyToken.length !== 6 || enableMutation.isLoading}
+                    disabled={verifyToken.length !== 6 || enableMutation.isPending}
                   >
-                    {enableMutation.isLoading ? 'Verifying...' : 'Verify & Enable'}
+                    {enableMutation.isPending ? "Verifying..." : "Verify & Enable"}
                   </Button>
                 </div>
               </>
@@ -420,10 +468,13 @@ const TwoFactorAuth: React.FC = () => {
                   <div className="flex items-start gap-3">
                     <KeyIcon className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-amber-900">
-                      <p className="font-bold mb-2">⚠️ Important: Save Your Backup Codes</p>
+                      <p className="font-bold mb-2">
+                        ⚠️ Important: Save Your Backup Codes
+                      </p>
                       <p>
-                        These codes can restore access if you lose your authenticator device. 
-                        Each code works only once. Store them securely!
+                        These codes can restore access if you lose your
+                        authenticator device. Each code works only once. Store
+                        them securely!
                       </p>
                     </div>
                   </div>
@@ -456,7 +507,11 @@ const TwoFactorAuth: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end pt-4 border-t">
-                  <Button variant="primary" onClick={handleCloseSetup} className="px-8">
+                  <Button
+                    variant="primary"
+                    onClick={handleCloseSetup}
+                    className="px-8"
+                  >
                     Done
                   </Button>
                 </div>
@@ -474,11 +529,11 @@ const TwoFactorAuth: React.FC = () => {
           <div className="space-y-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-800">
-                <strong>Warning:</strong> Disabling 2FA will make your account less secure. 
-                You'll only need your password to sign in.
+                <strong>Warning:</strong> Disabling 2FA will make your account
+                less secure. You'll only need your password to sign in.
               </p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Enter verification code from your authenticator app:
@@ -486,23 +541,28 @@ const TwoFactorAuth: React.FC = () => {
               <Input
                 type="text"
                 value={disableToken}
-                onChange={(e) => setDisableToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) =>
+                  setDisableToken(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="000000"
                 maxLength={6}
                 className="text-center text-3xl tracking-[0.5em] font-mono font-bold"
               />
             </div>
-            
+
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button variant="outline" onClick={() => setDisableModalOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setDisableModalOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
                 variant="danger"
                 onClick={handleDisable}
-                disabled={disableToken.length !== 6 || disableMutation.isLoading}
+                disabled={disableToken.length !== 6 || disableMutation.isPending}
               >
-                {disableMutation.isLoading ? 'Disabling...' : 'Disable 2FA'}
+                {disableMutation.isPending ? "Disabling..." : "Disable 2FA"}
               </Button>
             </div>
           </div>

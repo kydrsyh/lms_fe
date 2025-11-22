@@ -1,7 +1,7 @@
-import React, { Fragment } from 'react';
-import { Popover, Transition } from '@headlessui/react';
-import { FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import clsx from 'clsx';
+import React, { Fragment } from "react";
+import { Popover, Transition } from "@headlessui/react";
+import { FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import clsx from "clsx";
 
 interface FilterPopoverProps {
   value: string;
@@ -15,7 +15,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
   value,
   onChange,
   options,
-  placeholder = 'Filter',
+  placeholder = "Filter",
   hasActiveFilter = false,
 }) => {
   return (
@@ -24,10 +24,10 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
         <>
           <Popover.Button
             className={clsx(
-              'inline-flex items-center justify-center p-1.5 rounded-md transition-colors',
+              "inline-flex items-center justify-center p-1.5 rounded-md transition-colors",
               hasActiveFilter
-                ? 'text-primary-600 bg-primary-50 hover:bg-primary-100'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                ? "text-primary-600 bg-primary-50 hover:bg-primary-100"
+                : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             )}
           >
             <FunnelIcon className="h-4 w-4" />
@@ -48,11 +48,13 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             <Popover.Panel className="absolute z-10 mt-2 w-56 origin-top-left">
               <div className="rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 bg-white p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">{placeholder}</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {placeholder}
+                  </span>
                   {hasActiveFilter && (
                     <button
                       onClick={() => {
-                        onChange('');
+                        onChange("");
                         close();
                       }}
                       className="text-xs text-primary-600 hover:text-primary-700 font-medium"
@@ -85,4 +87,3 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
 };
 
 export default FilterPopover;
-
