@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import apiClient from "./client";
 
 export interface PresignedUrlRequest {
   fileName: string;
@@ -32,7 +32,9 @@ export interface DeleteFileRequest {
  * Get storage configuration
  */
 export const getStorageConfig = async (): Promise<StorageConfig> => {
-  const response = await apiClient.get<{ data: StorageConfig }>('/upload/config');
+  const response = await apiClient.get<{ data: StorageConfig }>(
+    "/upload/config"
+  );
   return response.data.data;
 };
 
@@ -43,7 +45,7 @@ export const requestPresignedUrl = async (
   data: PresignedUrlRequest
 ): Promise<PresignedUrlResponse> => {
   const response = await apiClient.post<{ data: PresignedUrlResponse }>(
-    '/upload/presigned-url',
+    "/upload/presigned-url",
     data
   );
   return response.data.data;
@@ -52,14 +54,15 @@ export const requestPresignedUrl = async (
 /**
  * Confirm upload success
  */
-export const confirmUpload = async (data: ConfirmUploadRequest): Promise<void> => {
-  await apiClient.post('/upload/confirm', data);
+export const confirmUpload = async (
+  data: ConfirmUploadRequest
+): Promise<void> => {
+  await apiClient.post("/upload/confirm", data);
 };
 
 /**
  * Delete file
  */
 export const deleteFile = async (data: DeleteFileRequest): Promise<void> => {
-  await apiClient.delete('/upload/file', { data });
+  await apiClient.delete("/upload/file", { data });
 };
-

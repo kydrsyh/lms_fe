@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DashboardLayout } from '../../components/templates';
-import { Card, Button, Modal, Input } from '../../components/atoms';
+import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DashboardLayout } from "../../components/templates";
+import { Card, Button, Modal, Input } from "../../components/atoms";
 import {
   settingsApi,
   AppSetting,
   SettingCategory,
   SettingUpdatePayload,
-} from '../../api/settingsApi';
-import { showErrorToast, showSuccessToast } from '../../utils/errorHandler';
-import { format } from 'date-fns';
+} from "../../api/settingsApi";
+import { showErrorToast, showSuccessToast } from "../../utils/errorHandler";
+import { format } from "date-fns";
 import {
   PencilIcon,
   CheckIcon,
@@ -20,31 +20,45 @@ import {
   Square3Stack3DIcon,
   CreditCardIcon,
   SparklesIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 const SettingsManagement: React.FC = () => {
   const queryClient = useQueryClient();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [settingToEdit, setSettingToEdit] = useState<AppSetting | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
-  const [showSensitive, setShowSensitive] = useState<Record<number, boolean>>({});
-  const [searchQuery, setSearchQuery] = useState('');
+  const [editValue, setEditValue] = useState<string>("");
+  const [showSensitive, setShowSensitive] = useState<Record<number, boolean>>(
+    {}
+  );
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch all settings
   const {
     data: settingsResponse,
     isLoading,
-  } = useQuery({
-    queryKey: ['settings'],
-    queryFn: settingsApi.getAll,
-    onError: (error) => {
-      showErrorToast(error, 'Failed to load settings');
+    isError: settingsIsError,
+    error: settingsError,
+  } = useQuery<AppSetting[], unknown>({
+    queryKey: ["settings"],
+    queryFn: async () => {
+      const res = await settingsApi.getAll();
+      return res.data;
     },
   });
 
+  useEffect(() => {
+    if (settingsIsError) {
+      showErrorToast(settingsError, "Failed to load settings");
+    }
+  }, [settingsIsError, settingsError]);
+
   // Update setting mutation
-  const updateMutation = useMutation({
+  const updateMutation = useMutation<
+    { success: boolean; message: string; data: AppSetting },
+    unknown,
+    { key: string; payload: SettingUpdatePayload }
+  >({
     mutationFn: ({
       key,
       payload,
@@ -54,30 +68,32 @@ const SettingsManagement: React.FC = () => {
     }) => settingsApi.update(key, payload),
     onSuccess: (data) => {
       showSuccessToast(data.message);
-      queryClient.invalidateQueries(['settings']);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
       setEditModalOpen(false);
       setSettingToEdit(null);
     },
-    onError: (error) => {
-      showErrorToast(error, 'Failed to update setting');
+    onError: (error: unknown) => {
+      showErrorToast(error, "Failed to update setting");
     },
   });
 
-  const settings = settingsResponse?.data || [];
+  const settings: AppSetting[] = settingsResponse || [];
 
   // Filter settings
   const filteredSettings = useMemo(() => {
     let result = settings;
 
     // Filter by category
-    if (selectedCategory !== 'all') {
-      result = result.filter((s) => s.category === selectedCategory);
+    if (selectedCategory !== "all") {
+      result = result.filter(
+        (s: AppSetting) => s.category === selectedCategory
+      );
     }
 
     // Filter by search
     if (searchQuery) {
       result = result.filter(
-        (s) =>
+        (s: AppSetting) =>
           s.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -105,7 +121,7 @@ const SettingsManagement: React.FC = () => {
         stats[s.category] = { total: 0, enabled: 0 };
       }
       stats[s.category].total++;
-      if (s.valueType === 'boolean' && s.parsedValue === true) {
+      if (s.valueType === "boolean" && s.parsedValue === true) {
         stats[s.category].enabled++;
       }
     });
@@ -113,49 +129,49 @@ const SettingsManagement: React.FC = () => {
   }, [settings]);
 
   const categories = [
-    { 
-      value: 'all', 
-      label: 'All Settings', 
+    {
+      value: "all",
+      label: "All Settings",
       icon: Square3Stack3DIcon,
-      color: 'text-slate-600 bg-slate-100'
+      color: "text-slate-600 bg-slate-100",
     },
-    { 
-      value: SettingCategory.FEATURES, 
-      label: 'Features', 
+    {
+      value: SettingCategory.FEATURES,
+      label: "Features",
       icon: SparklesIcon,
-      color: 'text-blue-600 bg-blue-100'
+      color: "text-blue-600 bg-blue-100",
     },
-    { 
-      value: SettingCategory.INTEGRATIONS, 
-      label: 'Integrations', 
+    {
+      value: SettingCategory.INTEGRATIONS,
+      label: "Integrations",
       icon: Cog6ToothIcon,
-      color: 'text-purple-600 bg-purple-100'
+      color: "text-purple-600 bg-purple-100",
     },
-    { 
-      value: SettingCategory.SYSTEM, 
-      label: 'System', 
+    {
+      value: SettingCategory.SYSTEM,
+      label: "System",
       icon: Square3Stack3DIcon,
-      color: 'text-amber-600 bg-amber-100'
+      color: "text-amber-600 bg-amber-100",
     },
-    { 
-      value: SettingCategory.BRANDING, 
-      label: 'Branding', 
+    {
+      value: SettingCategory.BRANDING,
+      label: "Branding",
       icon: CreditCardIcon,
-      color: 'text-pink-600 bg-pink-100'
+      color: "text-pink-600 bg-pink-100",
     },
   ];
 
   const handleEdit = (setting: AppSetting) => {
     setSettingToEdit(setting);
-    
-    if (setting.valueType === 'boolean') {
-      setEditValue(setting.parsedValue ? 'true' : 'false');
-    } else if (setting.valueType === 'json') {
+
+    if (setting.valueType === "boolean") {
+      setEditValue(setting.parsedValue ? "true" : "false");
+    } else if (setting.valueType === "json") {
       setEditValue(JSON.stringify(setting.parsedValue, null, 2));
     } else {
       setEditValue(String(setting.parsedValue));
     }
-    
+
     setEditModalOpen(true);
   };
 
@@ -164,19 +180,22 @@ const SettingsManagement: React.FC = () => {
 
     let value: string | number | boolean | object = editValue;
 
-    if (settingToEdit.valueType === 'boolean') {
-      value = editValue === 'true';
-    } else if (settingToEdit.valueType === 'number') {
+    if (settingToEdit.valueType === "boolean") {
+      value = editValue === "true";
+    } else if (settingToEdit.valueType === "number") {
       value = parseFloat(editValue);
       if (isNaN(value)) {
-        showErrorToast(new Error('Invalid number'), 'Please enter a valid number');
+        showErrorToast(
+          new Error("Invalid number"),
+          "Please enter a valid number"
+        );
         return;
       }
-    } else if (settingToEdit.valueType === 'json') {
+    } else if (settingToEdit.valueType === "json") {
       try {
         value = JSON.parse(editValue);
       } catch (e) {
-        showErrorToast(new Error('Invalid JSON'), 'Please enter valid JSON');
+        showErrorToast(new Error("Invalid JSON"), "Please enter valid JSON");
         return;
       }
     }
@@ -213,7 +232,9 @@ const SettingsManagement: React.FC = () => {
     if (setting.isSensitive && showSensitive[setting.id]) {
       return (
         <div className="flex items-center gap-2">
-          <span className="font-mono text-sm text-slate-700">{setting.value}</span>
+          <span className="font-mono text-sm text-slate-700">
+            {setting.value}
+          </span>
           <button
             onClick={() => toggleSensitiveVisibility(setting.id)}
             className="text-slate-500 hover:text-slate-700 p-1 rounded hover:bg-slate-100"
@@ -225,30 +246,32 @@ const SettingsManagement: React.FC = () => {
       );
     }
 
-    if (setting.valueType === 'boolean') {
+    if (setting.valueType === "boolean") {
       return (
         <div className="flex items-center">
           <div
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              setting.parsedValue ? 'bg-green-500' : 'bg-slate-300'
+              setting.parsedValue ? "bg-green-500" : "bg-slate-300"
             }`}
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                setting.parsedValue ? 'translate-x-6' : 'translate-x-1'
+                setting.parsedValue ? "translate-x-6" : "translate-x-1"
               }`}
             />
           </div>
-          <span className={`ml-3 text-sm font-medium ${
-            setting.parsedValue ? 'text-green-700' : 'text-slate-600'
-          }`}>
-            {setting.parsedValue ? 'Enabled' : 'Disabled'}
+          <span
+            className={`ml-3 text-sm font-medium ${
+              setting.parsedValue ? "text-green-700" : "text-slate-600"
+            }`}
+          >
+            {setting.parsedValue ? "Enabled" : "Disabled"}
           </span>
         </div>
       );
     }
 
-    if (setting.valueType === 'json') {
+    if (setting.valueType === "json") {
       return (
         <details className="text-xs">
           <summary className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium">
@@ -261,21 +284,25 @@ const SettingsManagement: React.FC = () => {
       );
     }
 
-    return <span className="font-mono text-sm text-slate-700">{String(setting.parsedValue)}</span>;
+    return (
+      <span className="font-mono text-sm text-slate-700">
+        {String(setting.parsedValue)}
+      </span>
+    );
   };
 
   const getCategoryColor = (category: SettingCategory) => {
     switch (category) {
       case SettingCategory.FEATURES:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case SettingCategory.INTEGRATIONS:
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return "bg-purple-100 text-purple-800 border-purple-200";
       case SettingCategory.SYSTEM:
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return "bg-amber-100 text-amber-800 border-amber-200";
       case SettingCategory.BRANDING:
-        return 'bg-pink-100 text-pink-800 border-pink-200';
+        return "bg-pink-100 text-pink-800 border-pink-200";
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+        return "bg-slate-100 text-slate-800 border-slate-200";
     }
   };
 
@@ -298,7 +325,8 @@ const SettingsManagement: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">Application Settings</h1>
               <p className="text-indigo-100 text-lg">
-                Configure feature flags, integrations, and system settings for client deployments
+                Configure feature flags, integrations, and system settings for
+                client deployments
               </p>
             </div>
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
@@ -325,19 +353,26 @@ const SettingsManagement: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {categories.map((cat) => {
             const Icon = cat.icon;
-            const count = cat.value === 'all' ? settings.length : (categoryStats[cat.value]?.total || 0);
-            const enabled = cat.value === 'all' 
-              ? Object.values(categoryStats).reduce((sum, s) => sum + s.enabled, 0)
-              : (categoryStats[cat.value]?.enabled || 0);
-            
+            const count =
+              cat.value === "all"
+                ? settings.length
+                : categoryStats[cat.value]?.total || 0;
+            const enabled =
+              cat.value === "all"
+                ? Object.values(categoryStats).reduce(
+                    (sum, s) => sum + s.enabled,
+                    0
+                  )
+                : categoryStats[cat.value]?.enabled || 0;
+
             return (
               <button
                 key={cat.value}
                 onClick={() => setSelectedCategory(cat.value)}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedCategory === cat.value
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+                    ? "border-blue-500 bg-blue-50 shadow-md"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -346,9 +381,12 @@ const SettingsManagement: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-left">
-                  <div className="font-semibold text-slate-900">{cat.label}</div>
+                  <div className="font-semibold text-slate-900">
+                    {cat.label}
+                  </div>
                   <div className="text-xs text-slate-600 mt-1">
-                    {count} total {cat.value !== 'all' && `· ${enabled} enabled`}
+                    {count} total{" "}
+                    {cat.value !== "all" && `· ${enabled} enabled`}
                   </div>
                 </div>
               </button>
@@ -363,17 +401,25 @@ const SettingsManagement: React.FC = () => {
               <div className="text-slate-400 text-5xl mb-4">🔍</div>
               <p className="text-slate-600 text-lg">No settings found</p>
               <p className="text-slate-500 text-sm mt-2">
-                {searchQuery ? 'Try different search terms' : 'No settings in this category'}
+                {searchQuery
+                  ? "Try different search terms"
+                  : "No settings in this category"}
               </p>
             </div>
           </Card>
-        ) : selectedCategory === 'all' ? (
+        ) : selectedCategory === "all" ? (
           // Show grouped by category
           <div className="space-y-6">
-            {Object.entries(settingsByCategory).map(([category, categorySettings]) => (
+            {(
+              Object.entries(settingsByCategory) as [string, AppSetting[]][]
+            ).map(([category, categorySettings]) => (
               <div key={category}>
                 <h3 className="text-lg font-semibold text-slate-900 mb-3 capitalize flex items-center gap-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm border ${getCategoryColor(category as SettingCategory)}`}>
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-sm border ${getCategoryColor(
+                      category as SettingCategory
+                    )}`}
+                  >
                     {category}
                   </span>
                   <span className="text-slate-500 text-sm font-normal">
@@ -382,7 +428,10 @@ const SettingsManagement: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {categorySettings.map((setting) => (
-                    <Card key={setting.id} className="hover:shadow-md transition-shadow">
+                    <Card
+                      key={setting.id}
+                      className="hover:shadow-md transition-shadow"
+                    >
                       <div className="p-5">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
@@ -414,15 +463,14 @@ const SettingsManagement: React.FC = () => {
                           )}
                         </div>
                         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                          <div className="flex-1">
-                            {renderValue(setting)}
-                          </div>
+                          <div className="flex-1">{renderValue(setting)}</div>
                           <span className="text-xs text-slate-400 ml-2">
                             {setting.valueType}
                           </span>
                         </div>
                         <div className="mt-2 text-xs text-slate-500">
-                          Updated {format(new Date(setting.updatedAt), 'MMM d, yyyy')}
+                          Updated{" "}
+                          {format(new Date(setting.updatedAt), "MMM d, yyyy")}
                         </div>
                       </div>
                     </Card>
@@ -435,7 +483,10 @@ const SettingsManagement: React.FC = () => {
           // Show single category
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filteredSettings.map((setting) => (
-              <Card key={setting.id} className="hover:shadow-md transition-shadow">
+              <Card
+                key={setting.id}
+                className="hover:shadow-md transition-shadow"
+              >
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
@@ -467,15 +518,13 @@ const SettingsManagement: React.FC = () => {
                     )}
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <div className="flex-1">
-                      {renderValue(setting)}
-                    </div>
+                    <div className="flex-1">{renderValue(setting)}</div>
                     <span className="text-xs text-slate-400 ml-2">
                       {setting.valueType}
                     </span>
                   </div>
                   <div className="mt-2 text-xs text-slate-500">
-                    Updated {format(new Date(setting.updatedAt), 'MMM d, yyyy')}
+                    Updated {format(new Date(setting.updatedAt), "MMM d, yyyy")}
                   </div>
                 </div>
               </Card>
@@ -501,7 +550,7 @@ const SettingsManagement: React.FC = () => {
                     {settingToEdit.key}
                   </div>
                   <div className="text-xs text-slate-600 mt-2">
-                    {settingToEdit.description || 'No description available'}
+                    {settingToEdit.description || "No description available"}
                   </div>
                 </div>
 
@@ -509,32 +558,32 @@ const SettingsManagement: React.FC = () => {
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Value ({settingToEdit.valueType})
                   </label>
-                  {settingToEdit.valueType === 'boolean' ? (
+                  {settingToEdit.valueType === "boolean" ? (
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={() => setEditValue('true')}
+                        onClick={() => setEditValue("true")}
                         className={`p-4 rounded-lg border-2 font-medium transition-all ${
-                          editValue === 'true'
-                            ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          editValue === "true"
+                            ? "border-green-500 bg-green-50 text-green-700"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                         }`}
                       >
                         <CheckIcon className="w-5 h-5 mx-auto mb-1" />
                         Enabled
                       </button>
                       <button
-                        onClick={() => setEditValue('false')}
+                        onClick={() => setEditValue("false")}
                         className={`p-4 rounded-lg border-2 font-medium transition-all ${
-                          editValue === 'false'
-                            ? 'border-red-500 bg-red-50 text-red-700'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          editValue === "false"
+                            ? "border-red-500 bg-red-50 text-red-700"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                         }`}
                       >
                         <XMarkIcon className="w-5 h-5 mx-auto mb-1" />
                         Disabled
                       </button>
                     </div>
-                  ) : settingToEdit.valueType === 'json' ? (
+                  ) : settingToEdit.valueType === "json" ? (
                     <textarea
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
@@ -544,7 +593,9 @@ const SettingsManagement: React.FC = () => {
                     />
                   ) : (
                     <Input
-                      type={settingToEdit.valueType === 'number' ? 'number' : 'text'}
+                      type={
+                        settingToEdit.valueType === "number" ? "number" : "text"
+                      }
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       placeholder={`Enter ${settingToEdit.valueType} value`}
@@ -566,9 +617,9 @@ const SettingsManagement: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={handleUpdate}
-                    disabled={updateMutation.isLoading}
+                    disabled={updateMutation.isPending}
                   >
-                    {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </>
